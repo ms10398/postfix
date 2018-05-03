@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+
+  <title>Postfix</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="https://blackrockdigital.github.io/startbootstrap-bare/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <style>
+    body {
+      padding-top: 54px;
+    }
+
+    @media (min-width: 992px) {
+      body {
+        padding-top: 56px;
+      }
+    }
+
+    #publish {
+      margin-top: 20px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">Utopian.io</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="#">Home
+                <span class="sr-only">(current)</span>
+              </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="//utopian.io" target="_blank">Mainpage</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12 text-center">
+        <h1 class="mt-5">PostFix3000</h1>
+        <p class="lead">Your post isn't shown on utopian.io but is visible on steemit.com?</p>
+        <p class="lead">No problem! With PostFix3000 you can fix this yourself.</p>
+        <div id="enter_name">
+          <div class="card">
+            <div class="card-header">
+              Let's start
+            </div>
+            <div class="card-body">
+              <h5 class="card-title">Username</h5>
+              <p class="card-text">Please enter your <b>steemit</b> username</p>
+              <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="basic-addon1">@</span>
+                </div>
+                <input type="text" id="username" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="basic-addon1">
+              </div>
+              <div class="form-group mb-3" id="dropdown"></div>
+              <a href="#" id="getpost" class="btn btn-primary">Fetch Posts</a>
+              <a href="#" id="publish" class="btn btn-primary">Publish to Utopian</a>
+              <p class="card-text" id="published"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="https://blackrockdigital.github.io/startbootstrap-bare/vendor/jquery/jquery.min.js"></script>
+  <script src="https://blackrockdigital.github.io/startbootstrap-bare/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.steemjs.com/lib/latest/steem.min.js"></script>
+  <script>
+    var getposts = document.getElementById('getpost');
+    var publish = document.getElementById('publish');
+    $(publish).hide();
+    getposts.addEventListener('click', () => {
+      var drop = document.getElementById('dropdown');
+      var query = {
+        tag: document.getElementById('username').value,
+        limit: 25
+      };
+      let post = 0;
+      steem.api.getDiscussionsByBlog(query, function(err, discussions) {
+        var dropdown = `<label for="exampleFormControlSelect1">Select your post</label>
+<select class="form-control" id="posts">`;
+        if (!err) {
+          discussions.map(function(discussion) {
+            var currentDate = new Date();
+            var dateCreated = Date.parse(discussion.created);
+            dateCreated = new Date(dateCreated);
+            var diff = Math.floor((Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()) - Date.UTC(dateCreated.getFullYear(), dateCreated.getMonth(), dateCreated.getDate())) / (1000 * 60 * 60 * 24));
+            if (discussion.category == "utopian-io" && diff < 5) {
+              dropdown += `
+      <option value="${discussion.permlink}">${discussion.root_title}</option>`;
+              post++;
+            }
+          });
+        }
+        if (post == 0) {
+          dropdown = `<p class="card-text">We couldn't find any post you made on Utopian within 5 days. If you have any further queries contact us on our <a href="https://support.utopian.io/">support system</a></p>`;
+          $(drop).append(dropdown);
+        } else {
+          dropdown += `</select>`;
+          $(drop).append(dropdown);
+          $(publish).show();
+        }
+        $(getposts).remove();
+      });
+    });
+
+    publish.addEventListener('click', () => {
+      var permlink = document.getElementById('posts').value;
+      var username = document.getElementById('username').value;
+      $.ajax({
+        contentType: 'application/json',
+        headers: {
+          'x-api-key-id': 'jl9mbhakpb',
+          'x-api-key': 'IhpXUMRgLm2drAFChTLQP32bESCIh70769sroiG1'
+        },
+        data: JSON.stringify({
+          "author": username,
+          "permlink": permlink
+        }),
+        dataType: 'json',
+        success: function(data) {
+          console.log(data);
+          if(data.category == "utopian-io")
+          {
+            var published = document.getElementById('published');
+            var text = `<b>Your post was sucessfully added to utopian. You can view it at: </b><br>`;
+            var link = `https://utopian.io/utopian-io/@${username}/${permlink}`;
+            console.log(link);
+            published.innerHTML = `${text}<a href=${link}>${link}</a>`;
+            $(publish).hide();
+          }
+        },
+        error: function(err) {
+          console.log(err);
+        },
+        processData: false,
+        type: 'POST',
+        url: 'https://api.utopian.io/api/posts'
+      });
+    });
+  </script>
+
+</body>
+
+</html>
